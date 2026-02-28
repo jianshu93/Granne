@@ -22,7 +22,6 @@ use rayon::ThreadPoolBuilder;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::str::FromStr;
 use std::sync::Once;
 use xxhash_rust::xxh3::xxh3_64_with_seed;
 
@@ -38,9 +37,14 @@ use kmerutils::sketching::setsketchert::{OptDensHashSketch, RevOptDensHashSketch
 
 // Amino-acid k-mers and AA sketchers (AA-specific generator + pattern)
 use kmerutils::aautils::kmeraa::{
-    KmerAA32bit, KmerAA64bit, KmerGenerator as AAKmerGenerator,
-    KmerGenerationPattern as AAKmerGenerationPattern, SequenceAA,
+    Alphabet as AAAlphabet,
+    KmerAA32bit,
+    KmerAA64bit,
+    KmerGenerator as AAKmerGenerator,
+    KmerGenerationPattern as AAKmerGenerationPattern,
+    SequenceAA,
 };
+
 use kmerutils::aautils::setsketchert as aasketch;
 use kmerutils::aautils::setsketchert::SeqSketcherAAT;
 
@@ -67,9 +71,19 @@ fn ascii_to_seq(bases: &[u8]) -> Result<SequenceStruct, ()> {
 }
 
 /// Converts ASCII-encoded amino-acid sequence into `SequenceAA`.
+/// Converts ASCII-encoded amino-acid sequence into `SequenceAA`.
+/// - uppercases all residues
+/// - drops any residue not in the 20-AA alphabet (ACDEFGHIKLMNPQRSTVWY),
+///   including '*', 'X', gaps, etc.
 fn ascii_to_seq_aa(bases: &[u8]) -> Result<SequenceAA, ()> {
-    let s = std::str::from_utf8(bases).map_err(|_| ())?;
-    SequenceAA::from_str(s).map_err(|_| ())
+    // Normalize to uppercase to match Alphabet's bases
+    let mut upper = Vec::with_capacity(bases.len());
+    for &b in bases {
+        upper.push(b.to_ascii_uppercase());
+    }
+
+    let alphabet = AAAlphabet::new();
+    Ok(SequenceAA::new_filtered(&upper, &alphabet))
 }
 
 /// Read lines (one path per line) from a text file.
