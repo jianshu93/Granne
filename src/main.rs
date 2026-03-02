@@ -127,8 +127,6 @@ struct PrefixParams {
     kmer_size: usize,
     sketch_size: usize,
     densification: usize, // 0 optdens, 1 revoptdens
-    threads: usize,
-
     // DNA vs AA
     seq_type: String, // "dna" or "aa"
 
@@ -540,12 +538,14 @@ fn main() {
                         .long("prefix")
                         .short('p')
                         .required(true)
+                        .help("Prefix for output files (index, genomes list, idmap, params)")
                         .action(ArgAction::Set),
                 )
                 .arg(
                     Arg::new("reference_list")
                         .long("reference_list")
                         .short('r')
+                        .help("A list of reference genome file paths (FASTA/Q, .gz supported), one per line")
                         .required(true)
                         .action(ArgAction::Set),
                 )
@@ -553,6 +553,7 @@ fn main() {
                     Arg::new("kmer_size")
                         .long("kmer_size")
                         .short('k')
+                        .help("Kmer length, 1-32 for DNA, 1-12 for amino-acid")
                         .default_value("16")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
@@ -561,6 +562,7 @@ fn main() {
                     Arg::new("sketch_size")
                         .long("sketch_size")
                         .short('s')
+                        .help("MinHash Sketch size, number of b-bit hashes per genome")
                         .default_value("8192")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
@@ -569,7 +571,7 @@ fn main() {
                     Arg::new("densification")
                         .long("densification")
                         .short('d')
-                        .help("0 = optimal densification, 1 = Reverse Optimal Densification")
+                        .help("Densification strategy. 0 represents optimal densification, 1 represents Reverse Optimal Densification")
                         .default_value("0")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
@@ -593,6 +595,7 @@ fn main() {
                 .arg(
                     Arg::new("max_degree")
                         .long("max_degree")
+                        .help("max_degree for DiskANN vamana graph")
                         .default_value("256")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
@@ -600,6 +603,7 @@ fn main() {
                 .arg(
                     Arg::new("build_beam_width")
                         .long("build_beam_width")
+                        .help("Build beam width for DiskANN vamana graph")
                         // bump a bit vs 128 for high-dim u16 sketches
                         .default_value("1024")
                         .value_parser(clap::value_parser!(usize))
@@ -608,6 +612,7 @@ fn main() {
                 .arg(
                     Arg::new("alpha")
                         .long("alpha")
+                        .help("Alpha pruning parameter for DiskANN Vamana graph, larger alpha for less pruning")
                         .default_value("1.2")
                         .value_parser(clap::value_parser!(f32))
                         .action(ArgAction::Set),
@@ -615,7 +620,7 @@ fn main() {
                 .arg(
                     Arg::new("passes")
                         .long("passes")
-                        .help("Number of refinement passes during DiskANN graph build (>=1)")
+                        .help("Number of refinement passes during DiskANN Vamana graph build (>=1)")
                         .default_value("2")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
@@ -623,7 +628,7 @@ fn main() {
                 .arg(
                     Arg::new("extra_seeds")
                         .long("extra_seeds")
-                        .help("Extra random seeds per node per pass during DiskANN build (>=0)")
+                        .help("Extra random seeds per node per pass")
                         .default_value("2")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
@@ -631,7 +636,7 @@ fn main() {
                 .arg(
                     Arg::new("hash_seed")
                         .long("hash_seed")
-                        .help("XXH3 seed for canonical k-mer hashing (MUST match between build & search)")
+                        .help("xxh3 seed for canonical k-mer hashing")
                         .default_value("1337")
                         .value_parser(clap::value_parser!(u64))
                         .action(ArgAction::Set),
@@ -644,6 +649,7 @@ fn main() {
                     Arg::new("prefix")
                         .long("prefix")
                         .short('p')
+                        .help("Prefix for input files (index, genomes list, idmap, params), must match the output prefix used to build the index")
                         .required(true)
                         .action(ArgAction::Set),
                 )
@@ -651,6 +657,7 @@ fn main() {
                     Arg::new("query_list")
                         .long("query_list")
                         .short('q')
+                        .help("A list of query genome file paths (FASTA/Q, .gz supported), one per line")
                         .required(true)
                         .action(ArgAction::Set),
                 )
@@ -675,7 +682,7 @@ fn main() {
                     Arg::new("threads")
                         .long("threads")
                         .short('t')
-                        .help("Threads for sketching/search, default all logical cores")
+                        .help("Number of threads for query sketching and search, default all logical cores")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
                 )
@@ -797,7 +804,6 @@ fn main() {
                 kmer_size,
                 sketch_size,
                 densification: dens,
-                threads,
                 seq_type: seq_type.clone(),
                 max_degree,
                 build_beam_width,
