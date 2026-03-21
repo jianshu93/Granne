@@ -621,7 +621,7 @@ fn main() {
                     Arg::new("passes")
                         .long("passes")
                         .help("Number of refinement passes during DiskANN Vamana graph build (>=1)")
-                        .default_value("2")
+                        .default_value("1")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
                 )
@@ -629,7 +629,7 @@ fn main() {
                     Arg::new("extra_seeds")
                         .long("extra_seeds")
                         .help("Extra random seeds per node per pass")
-                        .default_value("2")
+                        .default_value("1")
                         .value_parser(clap::value_parser!(usize))
                         .action(ArgAction::Set),
                 )
